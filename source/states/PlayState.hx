@@ -1610,6 +1610,7 @@ class PlayState extends MusicBeatState
 			callOnScripts('onResume');
 			resetRPC(startTimer != null && startTimer.finished);
 		}
+		if (mobileControls != null) mobileControls.visible = true;
 	}
 
 	#if DISCORD_ALLOWED
@@ -1935,6 +1936,7 @@ class PlayState extends MusicBeatState
 					note.resetAnim = 0;
 				}
 		}
+		mobileControls.visible = false;
 		openSubState(new PauseSubState());
 
 		#if DISCORD_ALLOWED
@@ -2713,7 +2715,7 @@ class PlayState extends MusicBeatState
 
 	private function onButtonPress(button:TouchButton):Void
 	{
-		if (button != null && button.justPressed) {
+		if (button != null && !button.IDs.contains(EXTRA) && button.justPressed) {
 			keyPressed(button.IDs[0].toString().startsWith('NOTE') ? button.IDs[0] : button.IDs[1]);
 		}
 	}
@@ -2798,7 +2800,7 @@ class PlayState extends MusicBeatState
 
 	private function onButtonRelease(button:TouchButton):Void
 	{
-		if (button != null && button.justReleased) {
+		if (button != null && !button.IDs.contains(EXTRA) && button.justReleased) {
 			keyReleased(button.IDs[0].toString().startsWith('NOTE') ? button.IDs[0] : button.IDs[1]);
 		}
 	}

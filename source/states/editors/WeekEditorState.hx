@@ -105,7 +105,8 @@ class WeekEditorState extends MusicBeatState implements PsychUIEventHandler.Psyc
 
 		super.create();
 
-		addVirtualPad(NONE, B);
+		addVirtualPad(NONE, B, false, members.indexOf(blackBarThingie) + 1);
+		virtualPad.scrollFactor.set();
 	}
 
 	var UI_box:PsychUIBox;
@@ -390,6 +391,9 @@ class WeekEditorState extends MusicBeatState implements PsychUIEventHandler.Psyc
 				unsavedProgress = true;
 			}
 		}
+
+		if(id == PsychUIInputText.FOCUS_CHANGE_EVENT)
+			virtualPad.active = PsychUIInputText.focusOn == null;
 	}
 	
 	override function update(elapsed:Float)
@@ -630,10 +634,12 @@ class WeekEditorFreeplayState extends MusicBeatState implements PsychUIEventHand
 		changeSelection();
 		super.create();
 
-		addVirtualPad(UP_DOWN, B);
+		addVirtualPad(UP_DOWN, B, false, members.indexOf(blackBlack) + 1);
+		virtualPad.scrollFactor.set();
 	}
 	
 	var UI_box:PsychUIBox;
+	var blackBlack:FlxSprite;
 	function addEditorBox() {
 		var tabs = [
 			{name: 'Freeplay', label: 'Freeplay'},
@@ -645,7 +651,7 @@ class WeekEditorFreeplayState extends MusicBeatState implements PsychUIEventHand
 		addFreeplayUI();
 		add(UI_box);
 
-		var blackBlack:FlxSprite = new FlxSprite(0, 670).makeGraphic(FlxG.width, 50, FlxColor.BLACK);
+		blackBlack = new FlxSprite(0, 670).makeGraphic(FlxG.width, 50, FlxColor.BLACK);
 		blackBlack.alpha = 0.6;
 		add(blackBlack);
 
@@ -680,11 +686,14 @@ class WeekEditorFreeplayState extends MusicBeatState implements PsychUIEventHand
 		{
 			weekFile.songs[curSelected][1] = iconInputText.text;
 			iconArray[curSelected].changeIcon(iconInputText.text);
+			WeekEditorState.unsavedProgress = true;
 		}
 		else if(id == PsychUINumericStepper.CHANGE_EVENT && (sender is PsychUINumericStepper))
 		{
 			if(sender == bgColorStepperR || sender == bgColorStepperG || sender == bgColorStepperB)
 				updateBG();
+
+			WeekEditorState.unsavedProgress = true;
 		}
 	}
 

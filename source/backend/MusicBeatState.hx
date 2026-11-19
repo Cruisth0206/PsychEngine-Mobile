@@ -32,14 +32,15 @@ class MusicBeatState extends FlxState
 		FlxG.cameras.add(camControls, false);
 	}
 
-	public function addMobileControls(setColors:Bool = true, addNewCamera:Bool = #if mobile true #else false #end) {
+	public function addMobileControls(setColors:Bool = true, addNewCamera:Bool = #if mobile true #else false #end, index:Int = -1) {
 		mobileControls = new MobileControls(MobileData.controlModes.get(ClientPrefs.data.controlMode.toUpperCase()), ClientPrefs.data.hitboxStyle);
 		if (addNewCamera) {
 			makeControlCam();
 			mobileControls.cameras = [camControls];
 		}
 		if (setColors) MobileData.setControlColor(mobileControls.currentMode);
-		add(mobileControls);
+		if (index <= -1) add(mobileControls);
+		else insert(index, mobileControls);
 	}
 
 	public function removeMobileControls() {
@@ -50,14 +51,15 @@ class MusicBeatState extends FlxState
 	}
 
 	public var virtualPad:VirtualPad;
-	public function addVirtualPad(dPadMode:FlxDPadMode, actionMode:FlxActionMode, addNewCamera:Bool = #if mobile true #else false #end) {
+	public function addVirtualPad(dPadMode:FlxDPadMode, actionMode:FlxActionMode, addNewCamera:Bool = #if mobile true #else false #end, index:Int = -1) {
 		virtualPad = new VirtualPad(dPadMode, actionMode);
-		virtualPad.alpha = ClientPrefs.data.controlAlpha;
+		virtualPad.alpha = ClientPrefs.data.padAlpha;
 		if (addNewCamera) {
 			makeControlCam();
 			virtualPad.cameras = [camControls];
 		}
-		add(virtualPad);
+		if (index <= -1) add(virtualPad);
+		else insert(index, virtualPad);
 	}
 
 	public function removeVirtualPad() {

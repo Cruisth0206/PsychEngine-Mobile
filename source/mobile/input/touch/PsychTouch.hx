@@ -17,21 +17,41 @@ class PsychTouch extends FlxTouch
 	public var deltaScreenX(get, never):Int;
 	public var deltaScreenY(get, never):Int;
 
+	public var deltaAccumlationX:Int = 0;
+	public var deltaAccumlationY:Int = 0;
+	public var deltaScreenAccumlationX:Int = 0;
+	public var deltaScreenAccumlationY:Int = 0;
+
+	var _updatePrev:Bool = true;
 	var _prevX:Int = 0;
 	var _prevY:Int = 0;
 	var _prevScreenX:Int = 0;
 	var _prevScreenY:Int = 0;
-	var _deltaAccumlationX:Int = 0;
-	var _deltaAccumlationY:Int = 0;
 
-	public function reset() {
+	override function recycle(x:Int, y:Int, pointID:Int, pressure:Float) {
+		super.recycle(x, y, pointID, pressure);
+		deltaAccumlationX = 0;
+		deltaAccumlationY = 0;
+		deltaScreenAccumlationX = 0;
+		deltaScreenAccumlationY = 0;
 		swiped = false;
 		doublePressed = false;
-		input.reset();
 	}
 
 	override function update():Void {
 		super.update();
+		// fucking stupid ughhhhhhhhhhhhhhhhhhhhhhhhh
+		if (_updatePrev) {
+			updatePreviousPositions();
+		}
+		else _updatePrev = true;
+		deltaAccumlationX += deltaX;
+		deltaAccumlationY += deltaY;
+		deltaScreenAccumlationX += deltaScreenX;
+		deltaScreenAccumlationY += deltaScreenY;
+		if (!swiped && (Math.abs(deltaAccumlationX) >= swipeThreshold || Math.abs(deltaAccumlationY) >= swipeThreshold)) {
+			swiped = true;
+		}
 		if (pressed && justDoublePressed) {
 			justDoublePressed = false;
 		}

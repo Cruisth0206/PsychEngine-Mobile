@@ -1,6 +1,7 @@
 package mobile.objects;
 
 import flixel.FlxG;
+import flixel.FlxObject;
 import flixel.graphics.frames.FlxTileFrames;
 import flixel.group.FlxSpriteGroup;
 import flixel.math.FlxPoint;
@@ -18,8 +19,14 @@ import mobile.objects.TouchButton;
  * @author Ka Wing Chin
  * @modification melodiekit
  */
-class VirtualPad extends MobileInputManager
+class VirtualPad extends MobileInputManager implements IMobileControls
 {
+	public var layouts:Map<String, Array<ButtonLayout>> = new Map<String, Array<ButtonLayout>>();
+	public var curLayout:Null<String>;
+
+	// if you use .push or any array methods, you need to set the array again to apply it to the buttons
+	public var deadZones(default, set):Array<FlxObject> = [];
+
 	public var buttonLeft:TouchButton = new TouchButton(0, 0, [MobileInputID.LEFT, MobileInputID.NOTE_LEFT]);
 	public var buttonDown:TouchButton = new TouchButton(0, 0, [MobileInputID.DOWN, MobileInputID.NOTE_DOWN]);
 	public var buttonUp:TouchButton = new TouchButton(0, 0, [MobileInputID.UP, MobileInputID.NOTE_UP]);
@@ -36,6 +43,7 @@ class VirtualPad extends MobileInputManager
 	public var buttonX:TouchButton = new TouchButton(0, 0, [MobileInputID.X]);
 	public var buttonY:TouchButton = new TouchButton(0, 0, [MobileInputID.Y]);
 	public var buttonZ:TouchButton = new TouchButton(0, 0, [MobileInputID.Z]);
+	public var buttonExtra:TouchButton = new TouchButton(0, 0, [MobileInputID.EXTRA]);
 
 	public var allowSwiping(default, set):Bool = true;
 
@@ -45,8 +53,7 @@ class VirtualPad extends MobileInputManager
 	 * @param   DPadMode     The D-Pad mode. `LEFT_FULL` for example.
 	 * @param   ActionMode   The action buttons mode. `A_B_C` for example.
 	 */
-	public function new(?DPad:FlxDPadMode, ?Action:FlxActionMode)
-	{
+	public function new(?DPad:FlxDPadMode, ?Action:FlxActionMode, Extra:Bool = false) {
 		super();
 		scrollFactor.set();
 
@@ -66,6 +73,22 @@ class VirtualPad extends MobileInputManager
 		addDPad(DPad);
 		addAction(Action);
 
+		if (Extra && ClientPrefs.data.extraButton) {
+			addAction(EXTRA);
+			if (DPad == RIGHT_FULL) {
+				buttonExtra.x = 93;
+			}
+			else if (DPad == CUSTOM) {
+				var extraPos:Array<Float> = MobileData.save.data.customPad[4];
+				if (extraPos != null && extraPos.length > 0) {
+					buttonExtra.x = extraPos[0];
+					if (extraPos.length > 1) {
+						buttonExtra.y = extraPos[1];
+					}
+				}
+			}
+		}
+
 		for (button in Reflect.fields(this)) {
 			var spr = Reflect.field(this, button);
 			if (spr is TouchButton) spr.IDs = storedKeys.get(button);
@@ -73,8 +96,7 @@ class VirtualPad extends MobileInputManager
 		updateTrackedButtons();
 	}
 
-	override public function destroy():Void
-	{
+	override public function destroy():Void {
 		super.destroy();
 
 		buttonA = null;
@@ -98,10 +120,9 @@ class VirtualPad extends MobileInputManager
 	/**
 	 * @param   DPad   The DPad mode to add.
 	*/
-	public function addDPad(?DPad:FlxDPadMode = NONE) {
+	public function addDPad(?DPad:FlxDPadMode = NONE):Void {
 		#if !mobile return; #end
-		switch (DPad)
-		{
+		switch (DPad) {
 			case UP_DOWN:
 				add(buttonUp = createButton(0, FlxG.height - 248, 132, 127, "up", 0xFF12FA05));
 				add(buttonDown = createButton(0, FlxG.height - 124, 132, 127, "down", 0xFF00FFFF));
@@ -131,10 +152,9 @@ class VirtualPad extends MobileInputManager
 	/**
 	 * @param   Action   The Action mode to add.
 	*/
-	public function addAction(?Action:FlxActionMode = NONE) {
+	public function addAction(?Action:FlxActionMode = NONE):Void {
 		#if !mobile return; #end
-		switch (Action)
-		{
+		switch (Action) {
 			case A:
 				add(buttonA = createButton(FlxG.width - 132, FlxG.height - 127, 132, 127, "a", 0xFFFF0000));
 			case B:
@@ -187,6 +207,8 @@ class VirtualPad extends MobileInputManager
 				add(buttonX = createButton(FlxG.width - 396, FlxG.height - 254, 132, 127, "x", 0xFF99062D));
 				add(buttonY = createButton(FlxG.width - 264, FlxG.height - 254, 132, 127, "y", 0xFF4A35B9));
 				add(buttonZ = createButton(FlxG.width - 132, FlxG.height - 254, 132, 127, "z", 0xFFCCB98E));
+			case EXTRA:
+				add(buttonExtra = createButton(FlxG.width - 225, FlxG.height - 215, 132, 127, "a", 0xFFAAAAAA));
 			case NONE:
 		}
 	}
@@ -199,8 +221,7 @@ class VirtualPad extends MobileInputManager
 	 * @param   Graphic    The image of the button. It must contains 3 frames (`NORMAL`, `HIGHLIGHT`, `PRESSED`).
 	 * @return  The button
 	 */
-	public function createButton(X:Float, Y:Float, Width:Int, Height:Int, Graphic:String, Color:FlxColor = FlxColor.WHITE):TouchButton
-	{
+	public function createButton(X:Float, Y:Float, Width:Int, Height:Int, Graphic:String, Color:FlxColor = FlxColor.WHITE):TouchButton {
 		var button = new TouchButton(X, Y);
 		button.frames = FlxTileFrames.fromFrame(Paths.getSparrowAtlas('virtualpad').getByName(Graphic), FlxPoint.get(Width, Height));
 		button.resetSizeFromFrame();
@@ -224,7 +245,44 @@ class VirtualPad extends MobileInputManager
 		return button;
 	}
 
-	function set_allowSwiping(value:Bool) {
+	public function addLayout(name:String, layout:Array<ButtonLayout>):Void {
+		layouts.set(name, layout);
+		if (curLayout == null) setLayout(name);
+	}
+
+	public function setLayout(name:String):Void {
+		var layout:Array<ButtonLayout> = layouts.get(name);
+		if (layout == null) return;
+
+		clear();
+		for (str in layout) {
+			var button:TouchButton = str.button;
+			button.x = str.x;
+			button.y = str.y;
+			if (str.color != null) button.color = str.color;
+			button.deadZones = deadZones;
+			button.allowSwiping = allowSwiping;
+			add(button);
+			button.alpha = alpha; // lol
+		}
+		curLayout = name;
+	}
+
+	public function removeLayout(name:String):Void {
+		layouts.remove(name);
+		if (Lambda.empty(layouts)) curLayout = null;
+	}
+
+	function set_deadZones(value:Array<FlxObject>):Array<FlxObject> {
+		for (button in this) {
+			if (button is TouchButton) {
+				button.deadZones = value;
+			}
+		}
+		return deadZones = value;
+	}
+
+	function set_allowSwiping(value:Bool):Bool {
 		for (button in this) {
 			if (button is TouchButton) {
 				button.allowSwiping = value;
@@ -232,6 +290,13 @@ class VirtualPad extends MobileInputManager
 		}
 		return allowSwiping = value;
 	}
+}
+
+typedef ButtonLayout = {
+	var button:TouchButton;
+	var x:Int;
+	var y:Int;
+	var ?color:FlxColor;
 }
 
 enum FlxDPadMode
@@ -265,4 +330,5 @@ enum FlxActionMode
 	A_B_X_Y;
 	A_B_C_X_Y;
 	A_B_C_X_Y_Z;
+	EXTRA;
 }

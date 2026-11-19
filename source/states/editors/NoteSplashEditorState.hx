@@ -123,12 +123,14 @@ class NoteSplashEditorState extends MusicBeatState
 
         super.create();
 
-        addVirtualPad(LEFT_FULL, B);
+        addVirtualPad(LEFT_FULL, B, false, members.indexOf(UI));
+        virtualPad.scrollFactor.set();
         virtualPad.addAction(F);
         virtualPad.addAction(C);
         virtualPad.addAction(X);
         virtualPad.addAction(Y);
         virtualPad.addAction(Z);
+        virtualPad.buttonLeft.y = virtualPad.buttonDown.y = virtualPad.buttonUp.y = virtualPad.buttonRight.y -= 100;
         virtualPad.buttonF.x = tipText.x + 120;
         virtualPad.buttonF.y = tipText.y + 35;
         virtualPad.buttonC.x -= 132;

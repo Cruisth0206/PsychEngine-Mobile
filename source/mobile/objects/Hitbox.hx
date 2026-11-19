@@ -11,14 +11,15 @@ import mobile.input.MobileInputID;
 import mobile.input.MobileInputManager;
 import mobile.objects.TouchButton;
 
-class Hitbox extends MobileInputManager
+class Hitbox extends MobileInputManager implements IMobileControls
 {
 	public var buttonLeft:TouchButton = new TouchButton(0, 0, [MobileInputID.NOTE_LEFT]);
 	public var buttonDown:TouchButton = new TouchButton(0, 0, [MobileInputID.NOTE_DOWN]);
 	public var buttonUp:TouchButton = new TouchButton(0, 0, [MobileInputID.NOTE_UP]);
 	public var buttonRight:TouchButton = new TouchButton(0, 0, [MobileInputID.NOTE_RIGHT]);
+	public var buttonExtra:TouchButton = new TouchButton(0, 0, [MobileInputID.EXTRA]);
 
-	public function new(style:String = 'Normal') {
+	public function new(style:String = 'Normal', extra:Bool = false) {
 		super();
 
 		#if !mobile return; #end
@@ -29,16 +30,44 @@ class Hitbox extends MobileInputManager
 			if (spr is TouchButton) storedKeys.set(button, spr.IDs);
 		}
 
-		add(buttonLeft = createHitbox(0, 0, Std.int(FlxG.width / 4), FlxG.height, style));
-		add(buttonDown = createHitbox(FlxG.width / 4, 0, Std.int(FlxG.width / 4), FlxG.height, style));
-		add(buttonUp = createHitbox(FlxG.width / 2, 0, Std.int(FlxG.width / 4), FlxG.height, style));
-		add(buttonRight = createHitbox((FlxG.width / 4) + (FlxG.width / 2), 0, Std.int(FlxG.width / 4), FlxG.height, style));
+		if (extra && ClientPrefs.data.extraButton) addHitbox(style, EXTRA);
+		else addHitbox(style, NORMAL);
 
 		for (button in Reflect.fields(this)) {
 			var spr = Reflect.field(this, button);
 			if (spr is TouchButton) spr.IDs = storedKeys.get(button);
 		}
 		updateTrackedButtons();
+	}
+
+	public function addHitbox(style:String = 'Normal', hitbox:HitboxLayout) {
+		var buttonWidth:Int = Std.int(FlxG.width / 4);
+		switch(hitbox) {
+			case NORMAL:
+				add(buttonLeft = createHitbox(0, 0, buttonWidth, FlxG.height, style));
+				add(buttonDown = createHitbox(buttonWidth, 0, buttonWidth, FlxG.height, style));
+				add(buttonUp = createHitbox(buttonWidth * 2, 0, buttonWidth, FlxG.height, style));
+				add(buttonRight = createHitbox(buttonWidth * 3, 0, buttonWidth, FlxG.height, style));
+			case EXTRA:
+				var extraPos:String = ClientPrefs.data.hitboxExtraPosition.toLowerCase();
+				switch (extraPos) {
+					case 'bottom', 'top':
+						var buttonHeight:Int = Std.int(FlxG.height / 4);
+						var buttonY:Float = extraPos == 'top' ? buttonHeight : 0;
+						add(buttonLeft = createHitbox(0, buttonY, buttonWidth, buttonHeight * 3, style));
+						add(buttonDown = createHitbox(buttonWidth, buttonY, buttonWidth, buttonHeight * 3, style));
+						add(buttonUp = createHitbox(buttonWidth * 2, buttonY, buttonWidth, buttonHeight * 3, style));
+						add(buttonRight = createHitbox(buttonWidth * 3, buttonY, buttonWidth, buttonHeight * 3, style));
+						add(buttonExtra = createHitbox(0, extraPos == 'top' ? 0 : buttonHeight * 3, FlxG.width, buttonHeight, style));
+					case 'middle':
+						buttonWidth = Std.int(FlxG.width / 5);
+						add(buttonLeft = createHitbox(0, 0, buttonWidth, FlxG.height, style));
+						add(buttonDown = createHitbox(buttonWidth, 0, buttonWidth, FlxG.height, style));
+						add(buttonExtra = createHitbox(buttonWidth * 2, 0, buttonWidth, FlxG.height, style));
+						add(buttonUp = createHitbox(buttonWidth * 3, 0, buttonWidth, FlxG.height, style));
+						add(buttonRight = createHitbox(buttonWidth * 4, 0, buttonWidth, FlxG.height, style));
+				}
+		}
 	}
 
 	function createHitbox(x:Float = 0, y:Float = 0, width:Int = 1, height:Int = 1, style:String = 'Normal'):TouchButton {
@@ -95,4 +124,11 @@ class Hitbox extends MobileInputManager
 			return FlxG.bitmap.add(bitmap);
 		}
 	}
+}
+
+// now imagine extra keys support :durr:
+enum HitboxLayout
+{
+	NORMAL;
+	EXTRA;
 }

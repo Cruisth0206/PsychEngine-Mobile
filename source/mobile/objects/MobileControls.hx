@@ -9,7 +9,7 @@ import mobile.input.MobileInputManager;
 
 class MobileControls extends FlxTypedSpriteGroup<MobileInputManager>
 {
-	public var currentMode(get, never):Dynamic;
+	public var currentMode(get, never):IMobileControls;
 	public var controlMode(get, set):String;
 	public var isHitbox(get, never):Bool;
 	public var isVirtualPad(get, never):Bool;
@@ -18,13 +18,13 @@ class MobileControls extends FlxTypedSpriteGroup<MobileInputManager>
 
 	private var _controlMode:ControlMode;
 
-	public function new(controlMode:ControlMode = HITBOX, hitboxStyle:String = 'Normal') {
+	public function new(controlMode:ControlMode = HITBOX, hitboxStyle:String = 'Normal', extra:Bool = true) {
 		super();
-		changeControl(controlMode, hitboxStyle);
+		changeControl(controlMode, hitboxStyle, extra);
 		alpha = ClientPrefs.data.controlAlpha;
 	}
 
-	public function changeControl(?controlMode:ControlMode, hitboxStyle:String = 'Normal') {
+	public function changeControl(?controlMode:ControlMode, hitboxStyle:String = 'Normal', extra:Bool = true) {
 		controlMode ??= HITBOX;
 		if (virtualPad != null) {
 			remove(virtualPad);
@@ -37,16 +37,16 @@ class MobileControls extends FlxTypedSpriteGroup<MobileInputManager>
 		_controlMode = controlMode;
 		switch(controlMode) {
 			case HITBOX:
-				hitbox = new Hitbox(hitboxStyle);
+				hitbox = new Hitbox(hitboxStyle, extra);
 				add(hitbox);
 			case LEFT_FULL:
-				virtualPad = new VirtualPad(LEFT_FULL, NONE);
+				virtualPad = new VirtualPad(LEFT_FULL, NONE, extra);
 				add(virtualPad);
 			case RIGHT_FULL:
-				virtualPad = new VirtualPad(RIGHT_FULL, NONE);
+				virtualPad = new VirtualPad(RIGHT_FULL, NONE, extra);
 				add(virtualPad);
 			case CUSTOM:
-				virtualPad = new VirtualPad(CUSTOM, NONE);
+				virtualPad = new VirtualPad(CUSTOM, NONE, extra);
 				add(virtualPad);
 		}
 	}
@@ -59,9 +59,10 @@ class MobileControls extends FlxTypedSpriteGroup<MobileInputManager>
 		return (controlMode == 'LEFT_FULL' || controlMode == 'RIGHT_FULL' || controlMode == 'CUSTOM');
 	}
 
-	function get_currentMode():Dynamic {
-		if (controlMode == 'HITBOX') return cast(hitbox, Hitbox);
-		else if (controlMode != 'NONE') return cast(virtualPad, VirtualPad);
+	// May need to cast if you want the class specific stuff
+	function get_currentMode():IMobileControls {
+		if (controlMode == 'HITBOX') return hitbox;
+		else if (controlMode != 'NONE') return virtualPad;
 		return null;
 	}
 

@@ -111,7 +111,7 @@ class ControlsSubState extends MusicBeatSubstate
 
 		createTexts();
 
-		addVirtualPad(UP_DOWN, A_B_C);
+		addVirtualPad(LEFT_FULL, A_B_C);
 	}
 
 	var lastID:Int = 0;
@@ -320,7 +320,7 @@ class ControlsSubState extends MusicBeatSubstate
 					ClientPrefs.toggleVolumeKeys(false);
 					FlxG.sound.play(Paths.sound('scrollMenu'));
 
-					virtualPad.buttonUp.exists = virtualPad.buttonDown.exists = virtualPad.buttonC.exists = false;
+					virtualPad.buttonLeft.exists = virtualPad.buttonRight.exists = virtualPad.buttonUp.exists = virtualPad.buttonDown.exists = virtualPad.buttonC.exists = false;
 				}
 				else
 				{
@@ -474,7 +474,7 @@ class ControlsSubState extends MusicBeatSubstate
 		remove(bindingText2);
 		ClientPrefs.reloadVolumeKeys();
 
-		virtualPad.buttonUp.exists = virtualPad.buttonDown.exists = virtualPad.buttonC.exists = true;
+		virtualPad.buttonLeft.exists = virtualPad.buttonRight.exists = virtualPad.buttonUp.exists = virtualPad.buttonDown.exists = virtualPad.buttonC.exists = true;
 	}
 
 	function updateText(?change:Int = 0)

@@ -1,5 +1,8 @@
 package mobile.options;
 
+import flixel.input.keyboard.FlxKey;
+import openfl.events.KeyboardEvent;
+
 import flixel.addons.display.FlxBackdrop;
 import flixel.addons.display.FlxGridOverlay;
 
@@ -18,14 +21,20 @@ class MobileControlsSubState extends MusicBeatSubstate
 
 	var curSelected:Int = 0;
 	var showingUI:Bool = true;
-	var movingButton:TouchButton;
+
+	var snapToGrid:Bool = false;
+	var grid:FlxBackdrop;
+	var cellWidth:Int = 25;
+	var cellHeight:Int = 25;
 
 	var curControl:Alphabet;
 	var leftArrow:FlxSprite;
 	var rightArrow:FlxSprite;
 	var exitButton:PsychUIButton;
 	var hideButton:PsychUIButton;
+	var rebindButton:PsychUIButton;
 	var resetButton:PsychUIButton;
+	var snapButton:PsychUIButton;
 
 	override function create() {
 		cameras = [FlxG.cameras.list[FlxG.cameras.list.length - 1]];
@@ -37,10 +46,8 @@ class MobileControlsSubState extends MusicBeatSubstate
 		FlxTween.tween(bg, {alpha: 0.6}, 0.5, {ease: FlxEase.quadOut});
 		add(bg);
 
-		var grid:FlxBackdrop = new FlxBackdrop(FlxGridOverlay.createGrid(80, 80, 160, 160, true, 0x33FFFFFF, 0x0));
-		grid.velocity.set(40, 40);
-		grid.alpha = 0;
-		FlxTween.tween(grid, {alpha: 1}, 0.5, {ease: FlxEase.quadOut});
+		grid = new FlxBackdrop(FlxGridOverlay.createGrid(cellWidth, cellHeight, FlxG.width, FlxG.height, true, 0x33FFFFFF, 0x0));
+		grid.visible = false;
 		add(grid);
 
 		mobileControls = new MobileControls();
@@ -91,6 +98,21 @@ class MobileControlsSubState extends MusicBeatSubstate
 		hideButton.text.y = hideButton.bg.y + (hideButton.bg.height - hideButton.text.height) / 2;
 		add(hideButton);
 
+		if (ClientPrefs.data.extraButton) {
+			rebindButton = new PsychUIButton(exitButton.x - 300, exitButton.y, Language.getPhrase('mobile_controls_rebind', 'Rebind Extra'), null, 250, 80);
+			rebindButton.normalStyle.bgColor = 0xFFAAAAAA;
+			rebindButton.text.font = Paths.font('vcr.ttf');
+			rebindButton.text.fieldWidth = 0;
+			rebindButton.text.size = 26;
+			if (rebindButton.text.width > rebindButton.bg.width - 20) {
+				rebindButton.text.scale.x = rebindButton.text.scale.y = rebindButton.bg.width / rebindButton.width;
+				rebindButton.text.updateHitbox();
+			}
+			rebindButton.text.x = rebindButton.bg.x + (rebindButton.bg.width - rebindButton.text.width) / 2;
+			rebindButton.text.y = rebindButton.bg.y + (rebindButton.bg.height - rebindButton.text.height) / 2;
+			add(rebindButton);
+		}
+
 		resetButton = new PsychUIButton(exitButton.x, exitButton.y + 110, Language.getPhrase('mobile_controls_reset_positions', 'Reset Positions'), null, 250, 80);
 		resetButton.normalStyle.bgColor = 0xFFFF0000;
 		resetButton.text.font = Paths.font('vcr.ttf');
@@ -106,12 +128,28 @@ class MobileControlsSubState extends MusicBeatSubstate
 		resetButton.kill();
 		add(resetButton);
 
+		snapButton = new PsychUIButton(resetButton.x, resetButton.y + 110, Language.getPhrase('mobile_controls_snap', 'Snap to Grid'), null, 250, 80);
+		snapButton.normalStyle.bgColor = 0xFFFFFF00;
+		snapButton.text.font = Paths.font('vcr.ttf');
+		snapButton.text.fieldWidth = 0;
+		snapButton.text.size = 26;
+		if (snapButton.text.width > snapButton.bg.width - 20) {
+			snapButton.text.scale.x = snapButton.text.scale.y = snapButton.bg.width / snapButton.width;
+			snapButton.text.updateHitbox();
+		}
+		snapButton.text.x = snapButton.bg.x + (snapButton.bg.width - snapButton.text.width) / 2;
+		snapButton.text.y = snapButton.bg.y + (snapButton.bg.height - snapButton.text.height) / 2;
+		snapButton.update(FlxG.elapsed);
+		snapButton.kill();
+		add(snapButton);
+
 		curSelected = Std.int(Math.max(options.indexOf(ClientPrefs.data.controlMode.toUpperCase()), 0));
 		changeControl(0, false);
 
 		super.create();
 	}
 
+	var movingButtons:Array<Array<Dynamic>> = [];
 	override function update(elapsed:Float) {
 		if (showingUI) {
 			if (controls.BACK || TouchUtil.overlaps(exitButton) && TouchUtil.justPressed) {
@@ -124,11 +162,20 @@ class MobileControlsSubState extends MusicBeatSubstate
 				close();
 			}
 
-			if (options[curSelected] == 'CUSTOM' && TouchUtil.overlaps(resetButton) && TouchUtil.justPressed) {
-				MobileData.resetCustomPad();
-				for (i => button in [mobileControls.virtualPad.buttonLeft, mobileControls.virtualPad.buttonDown, mobileControls.virtualPad.buttonUp, mobileControls.virtualPad.buttonRight]) {
-					button.x = MobileData.save.data.customPad[i][0];
-					button.y = MobileData.save.data.customPad[i][1];
+			if (rebindButton != null && TouchUtil.overlaps(rebindButton) && TouchUtil.justPressed) {
+				openSubState(new RebindSubstate());
+			}
+
+			if (options[curSelected] == 'CUSTOM') {
+				if (TouchUtil.overlaps(resetButton) && TouchUtil.justPressed) {
+					MobileData.resetCustomPad();
+					for (i => button in [mobileControls.virtualPad.buttonLeft, mobileControls.virtualPad.buttonDown, mobileControls.virtualPad.buttonUp, mobileControls.virtualPad.buttonRight, mobileControls.virtualPad.buttonExtra]) {
+						button.x = MobileData.save.data.customPad[i][0];
+						button.y = MobileData.save.data.customPad[i][1];
+					}
+				}
+				if (TouchUtil.overlaps(snapButton) && TouchUtil.justPressed) {
+					snapToGrid = grid.visible = !grid.visible;
 				}
 			}
 
@@ -158,17 +205,33 @@ class MobileControlsSubState extends MusicBeatSubstate
 		}
 
 		if (options[curSelected] == 'CUSTOM') {
-			for (button in [mobileControls.virtualPad.buttonLeft, mobileControls.virtualPad.buttonDown, mobileControls.virtualPad.buttonUp, mobileControls.virtualPad.buttonRight]) {
-				if (TouchUtil.overlaps(button) && TouchUtil.pressed && movingButton == null) {
-					movingButton = button;
+			for (button in [mobileControls.virtualPad.buttonLeft, mobileControls.virtualPad.buttonDown, mobileControls.virtualPad.buttonUp, mobileControls.virtualPad.buttonRight, mobileControls.virtualPad.buttonExtra]) {
+				if (!ClientPrefs.data.extraButton && button == mobileControls.virtualPad.buttonExtra) continue;
+
+				for (i => touch in TouchUtil.inputs.list) {
+					if (TouchUtil.initiallyOverlapped([button], null, null, [touch]) && touch.pressed && movingButtons[i] == null) {
+						movingButtons[i] = [];
+						movingButtons[i][0] = button;
+						movingButtons[i][1] = [button.x, button.y];
+					}
+					else if (touch.justReleased && movingButtons[i] != null) {
+						movingButtons[i] = null;
+					}
 				}
 			}
-			if (movingButton != null && TouchUtil.overlaps(movingButton) && TouchUtil.pressed) {
-				movingButton.x = TouchUtil.input.x - (movingButton.width / 2);
-				movingButton.y = TouchUtil.input.y - (movingButton.height / 2);
-			}
-			else if (TouchUtil.justReleased) {
-				movingButton = null;
+			for (i => touch in TouchUtil.inputs.list) {
+				if (movingButtons[i] != null) {
+					if (snapToGrid) {
+						movingButtons[i][1][0] += touch.deltaX;
+						movingButtons[i][1][1] += touch.deltaY;
+						movingButtons[i][0].x = Math.round(movingButtons[i][1][0] / cellWidth) * cellWidth;
+						movingButtons[i][0].y = Math.round(movingButtons[i][1][1] / cellHeight) * cellHeight;
+					}
+					else {
+						movingButtons[i][0].x += touch.deltaX;
+						movingButtons[i][0].y += touch.deltaY;
+					}
+				}
 			}
 		}
 
@@ -183,13 +246,24 @@ class MobileControlsSubState extends MusicBeatSubstate
 		mobileControls.changeControl(MobileData.controlModes.get(options[curSelected]), ClientPrefs.data.hitboxStyle);
 		MobileData.setControlColor(mobileControls.currentMode);
 
-		if (options[curSelected] == 'CUSTOM') resetButton.revive();
-		else if (resetButton.alive) resetButton.kill();
+		if (mobileControls.isVirtualPad) mobileControls.virtualPad.allowSwiping = false;
+
+		if (options[curSelected] == 'CUSTOM') {
+			resetButton.revive();
+			snapButton.revive();
+		}
+		else {
+			if (resetButton.alive) resetButton.kill();
+			if (snapButton.alive) snapButton.kill();
+			if (snapToGrid) snapToGrid = grid.visible = false;
+		}
 	}
 
 	function hideUI(hide:Bool = false) {
 		showingUI = !hide;
-		for (button in [curControl, leftArrow, rightArrow, exitButton, resetButton, hideButton]) {
+		for (button in [curControl, leftArrow, rightArrow, exitButton, resetButton, hideButton, rebindButton]) {
+			if (button == null) continue;
+
 			if (button == hideButton) {
 				var b:PsychUIButton = cast button;
 				b.normalStyle.bgAlpha = b.hoverStyle.bgAlpha = b.clickStyle.bgAlpha = hide ? 0.15 : 1;
@@ -199,5 +273,46 @@ class MobileControlsSubState extends MusicBeatSubstate
 			FlxTween.cancelTweensOf(button);
 			FlxTween.tween(button, { alpha: (hide && button == hideButton) ? 0.15 : hide ? 0 : 1 }, 0.15);
 		}
+	}
+}
+
+class RebindSubstate extends MusicBeatSubstate
+{
+	override function create() {
+		cameras = [FlxG.cameras.list[FlxG.cameras.list.length - 1]];
+
+		var bg:FlxSprite = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
+		bg.scale.set(FlxG.width, FlxG.height);
+		bg.updateHitbox();
+		bg.alpha = 0;
+		add(bg);
+
+		var rebindingTxt:Alphabet = new Alphabet(FlxG.width / 2, 160, 'Rebinding EXTRA key\nCurrent bind: ' + ClientPrefs.data.hitboxExtraKeybind, true);
+		rebindingTxt.alignment = CENTERED;
+		add(rebindingTxt);
+
+		FlxTween.tween(bg, { alpha: 0.6 }, 0.25);
+
+		FlxG.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+
+		FlxG.stage.window.textInputEnabled = true;
+
+		super.create();
+	}
+
+	override function update(elapsed:Float) {
+		if (TouchUtil.justPressed || !FlxG.stage.window.textInputEnabled) close();
+	}
+
+	override function destroy() {
+		FlxG.stage.window.textInputEnabled = false;
+		FlxG.stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+		ClientPrefs.saveSettings();
+		super.destroy();
+	}
+
+	function onKeyDown(e:KeyboardEvent) {
+		ClientPrefs.data.hitboxExtraKeybind = cast(e.keyCode, FlxKey).toString();
+		close();
 	}
 }

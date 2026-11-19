@@ -117,13 +117,25 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		super.create();
 
-		addVirtualPad(LEFT_FULL, A_B_C_X_Y_Z);
+		addVirtualPad(LEFT_FULL, A_B_C_X_Y_Z, false, members.indexOf(UI_box));
+		for (obj in [UI_box, UI_stagebox]) {
+			virtualPad.deadZones.push(obj);
+			for (tab in obj.tabs) {
+				for (mem in tab.menu) {
+					virtualPad.deadZones.push(mem);
+				}
+			}
+		}
+		virtualPad.deadZones = virtualPad.deadZones;
+		virtualPad.cameras = [camHUD];
 		virtualPad.addAction(D);
 		virtualPad.addAction(V);
 		virtualPad.addAction(F);
+		virtualPad.addAction(E);
 		virtualPad.buttonF.setPosition(UI_box.x - 135, UI_box.y + 112);
 		virtualPad.buttonD.setPosition(virtualPad.buttonC.x - 132, virtualPad.buttonC.y);
 		virtualPad.buttonV.setPosition(virtualPad.buttonX.x - 132, virtualPad.buttonX.y);
+		virtualPad.buttonE.setPosition(virtualPad.buttonD.x - 132, virtualPad.buttonD.y);
 		virtualPad.allowSwiping = false;
 	}
 
@@ -163,6 +175,7 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			"Swipe - Move Camera",
 			"Z - Reset Camera Zoom",
 			"Arrow Keys - Move Object",
+			"Hold E + Up/Down - Move Through Sprite List",
 			"",
 			'V - Toggle HUD',
 			"D - Toggle Selection Rectangle",
@@ -258,6 +271,7 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		tipText.cameras = [camHUD];
 		tipText.scrollFactor.set();
 		tipText.screenCenter(X);
+		#if mobile tipText.x -= 130; #end
 		tipText.active = false;
 		add(tipText);
 
@@ -468,6 +482,7 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			spr.sprite = FlxDestroyUtil.destroy(spr.sprite);
 
 			updateSpriteListRadio();
+			unsavedProgress = true;
 		});
 		buttonDelete.cameras = [camHUD];
 		buttonDelete.normalStyle.bgColor = FlxColor.RED;
@@ -1154,6 +1169,7 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			updateStageDataUI();
 			reloadCharacters();
 			reloadStageDropDown();
+			unsavedProgress = false;
 		});
 
 		var dummyStage:PsychUIButton = new PsychUIButton(140, 40, 'Load Template', function()
@@ -1166,6 +1182,7 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			updateSpriteList();
 			updateStageDataUI();
 			reloadCharacters();
+			unsavedProgress = false;
 		});
 		dummyStage.normalStyle.bgColor = FlxColor.RED;
 		dummyStage.normalStyle.textColor = FlxColor.WHITE;
@@ -1195,6 +1212,7 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				FlxG.sound.play(Paths.sound('cancelMenu'));
 				reloadStageDropDown();
 			}
+			unsavedProgress = false;
 		});
 		reloadStageDropDown();
 
@@ -1373,10 +1391,20 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 			case PsychUIInputText.CHANGE_EVENT, PsychUINumericStepper.CHANGE_EVENT:
 				unsavedProgress = true;
+
+			case PsychUIBox.DRAG_EVENT:
+				canMoveCamera = false;
+
+			case PsychUIBox.DROP_EVENT:
+				canMoveCamera = true;
+
+			case PsychUIInputText.FOCUS_CHANGE_EVENT:
+				virtualPad.active = PsychUIInputText.focusOn == null;
 		}
 	}
 
 	var outputTime:Float = 0;
+	var canMoveCamera:Bool = true;
 	#if mobile
 	var prevZoom:Float = 1;
 	#end
@@ -1397,6 +1425,7 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 
 		if(FlxG.keys.justPressed.ESCAPE || virtualPad.buttonB.justPressed #if android || FlxG.android.justReleased.BACK #end)
 		{
+			persistentDraw = true;
 			if(!unsavedProgress)
 			{
 				MusicBeatState.switchState(new states.editors.MasterEditorMenu());
@@ -1406,14 +1435,14 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			return;
 		}
 
-		if(FlxG.keys.justPressed.W)
+		if(FlxG.keys.justPressed.W || virtualPad.buttonE.pressed && virtualPad.buttonUp.justPressed)
 		{
 			spriteListRadioGroup.checked = FlxMath.wrap(spriteListRadioGroup.checked - 1, 0, spriteListRadioGroup.labels.length-1);
 			trace(spriteListRadioGroup.checked);
 			checkUIOnObject();
 			updateSelectedUI();
 		}
-		else if(FlxG.keys.justPressed.S)
+		else if(FlxG.keys.justPressed.S || virtualPad.buttonE.pressed && virtualPad.buttonDown.justPressed)
 		{
 			spriteListRadioGroup.checked = FlxMath.wrap(spriteListRadioGroup.checked + 1, 0, spriteListRadioGroup.labels.length-1);
 			trace(spriteListRadioGroup.checked);
@@ -1507,7 +1536,7 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 			FlxG.camera.zoom = Math.max(minZoom, FlxG.camera.zoom - elapsed * FlxG.camera.zoom * shiftMult * ctrlMult);
 
 		#if mobile
-		if (TouchUtil.input != null && TouchUtil.input.pressed && !TouchUtil.initiallyOverlapped([virtualPad], camControls, null, [TouchUtil.input]) && !TouchUtil.initiallyOverlapped([UI_box, UI_stagebox, spriteList_box, focusRadioGroup], camHUD, null, [TouchUtil.input])) {
+		if (canMoveCamera && TouchUtil.input != null && TouchUtil.input.pressed && !TouchUtil.initiallyOverlapped([virtualPad], camHUD, null, [TouchUtil.input]) && !TouchUtil.initiallyOverlapped([UI_box, UI_stagebox, spriteList_box, focusRadioGroup], camHUD, null, [TouchUtil.input])) {
 			// if (FlxG.touches.list.length < 2) { // Move camera
 				FlxG.camera.scroll.x -= TouchUtil.input.deltaScreenX;
 				FlxG.camera.scroll.y -= TouchUtil.input.deltaScreenY;
@@ -1531,8 +1560,8 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		var moveY:Float = 0;
 		if (FlxG.keys.justPressed.LEFT || virtualPad.buttonLeft.justPressed) moveX -= 5 * shiftMult * ctrlMult;
 		if (FlxG.keys.justPressed.RIGHT || virtualPad.buttonRight.justPressed) moveX += 5 * shiftMult * ctrlMult;
-		if (FlxG.keys.justPressed.UP || virtualPad.buttonUp.justPressed) moveY -= 5 * shiftMult * ctrlMult;
-		if (FlxG.keys.justPressed.DOWN || virtualPad.buttonDown.justPressed) moveY += 5 * shiftMult * ctrlMult;
+		if (FlxG.keys.justPressed.UP || !virtualPad.buttonE.pressed && virtualPad.buttonUp.justPressed) moveY -= 5 * shiftMult * ctrlMult;
+		if (FlxG.keys.justPressed.DOWN || !virtualPad.buttonE.pressed && virtualPad.buttonDown.justPressed) moveY += 5 * shiftMult * ctrlMult;
 
 		if(FlxG.mouse.pressedRight && (FlxG.mouse.deltaScreenX != 0 || FlxG.mouse.deltaScreenY != 0))
 		{
@@ -1566,6 +1595,7 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 						stageJson.opponent[1] = displayY = spr.y - char.positionArray[1];
 				}
 				posTxt.text = 'X: $displayX\nY: $displayY';
+				unsavedProgress = true;
 			}
 		}
 	}
@@ -1725,6 +1755,7 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 		_file = null;
 		#end
 		FlxG.log.notice('Successfully saved file.');
+		unsavedProgress = false;
 	}
 
 	/**
@@ -1820,6 +1851,7 @@ class StageEditorState extends MusicBeatState implements PsychUIEventHandler.Psy
 				posTxt.text = 'X: ${selected.sprite.x}\nY: ${selected.sprite.y}';
 			}
 			_makeNewSprite = null;
+			unsavedProgress = true;
 		}
 		#if !mobile
 		_file = null;
@@ -2393,6 +2425,18 @@ class StageEditorAnimationSubstate extends MusicBeatSubstate {
 		spr.playAnim(name, force);
 		if(!spr.animOffsets.exists(name)) spr.updateHitbox();
 	}
+
+	public function UIEvent(id:String, sender:Dynamic)
+	{
+		switch(id)
+		{
+			case PsychUIBox.DRAG_EVENT:
+				canMoveCamera = false;
+
+			case PsychUIBox.DROP_EVENT:
+				canMoveCamera = true;
+		}
+	}
 	
 	final minZoom = 0.25;
 	final maxZoom = 2;
@@ -2400,6 +2444,7 @@ class StageEditorAnimationSubstate extends MusicBeatSubstate {
 	var holdingArrowsElapsed:Float = 0;
 	var holdingFrameTime:Float = 0;
 	var holdingFrameElapsed:Float = 0;
+	var canMoveCamera:Bool = true;
 	#if mobile
 	var prevZoom:Float = 1;
 	#end
@@ -2522,7 +2567,7 @@ class StageEditorAnimationSubstate extends MusicBeatSubstate {
 		}
 
 		#if mobile
-		if (TouchUtil.input != null && TouchUtil.input.pressed && !TouchUtil.initiallyOverlapped([virtualPad], camControls, null, [TouchUtil.input]) && !TouchUtil.initiallyOverlapped([UI_animationbox], camHUD, null, [TouchUtil.input])) {
+		if (canMoveCamera && TouchUtil.input != null && TouchUtil.input.pressed && !TouchUtil.initiallyOverlapped([virtualPad], camHUD, null, [TouchUtil.input]) && !TouchUtil.initiallyOverlapped([UI_animationbox], camHUD, null, [TouchUtil.input])) {
 			// if (FlxG.touches.list.length < 2) { // Move camera
 				FlxG.camera.scroll.x -= TouchUtil.input.deltaScreenX;
 				FlxG.camera.scroll.y -= TouchUtil.input.deltaScreenY;

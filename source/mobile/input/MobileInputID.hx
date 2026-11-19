@@ -31,6 +31,7 @@ enum abstract MobileInputID(Int) from Int to Int
 	var DOWN = 18;
 	var LEFT = 19;
 	var RIGHT = 20;
+	var EXTRA = 21;
 
 	@:from
 	public static inline function fromString(s:String)

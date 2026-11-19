@@ -225,9 +225,24 @@ class HScript extends Iris
 		});
 
 		// Keyboard & Gamepads
-		set('keyboardJustPressed', function(name:String) return Reflect.getProperty(FlxG.keys.justPressed, name));
-		set('keyboardPressed', function(name:String) return Reflect.getProperty(FlxG.keys.pressed, name));
-		set('keyboardReleased', function(name:String) return Reflect.getProperty(FlxG.keys.justReleased, name));
+		set('keyboardJustPressed', function(name:String)
+		{
+			var extraCheck:Bool = false;
+			if (ClientPrefs.data.hitboxExtraKeybind == name) extraCheck = Controls.instance.mobileInstance?.currentMode?.buttonExtra?.justPressed ?? false;
+			return Reflect.getProperty(FlxG.keys.justPressed, name) || extraCheck;
+		});
+		set('keyboardPressed', function(name:String)
+		{
+			var extraCheck:Bool = false;
+			if (ClientPrefs.data.hitboxExtraKeybind == name) extraCheck = Controls.instance.mobileInstance?.currentMode?.buttonExtra?.pressed ?? false;
+			return Reflect.getProperty(FlxG.keys.pressed, name) || extraCheck;
+		});
+		set('keyboardReleased', function(name:String)
+		{
+			var extraCheck:Bool = false;
+			if (ClientPrefs.data.hitboxExtraKeybind == name) extraCheck = Controls.instance.mobileInstance?.currentMode?.buttonExtra?.justReleased ?? false;
+			return Reflect.getProperty(FlxG.keys.justReleased, name) || extraCheck;
+		});
 
 		set('anyGamepadJustPressed', function(name:String) return FlxG.gamepads.anyJustPressed(name));
 		set('anyGamepadPressed', function(name:String) FlxG.gamepads.anyPressed(name));

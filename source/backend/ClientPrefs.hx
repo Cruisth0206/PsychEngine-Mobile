@@ -11,9 +11,13 @@ import states.TitleState;
 @:structInit class SaveVariables {
 	// mobile stuff
 	public var controlMode:String = 'HITBOX';
+	public var padAlpha:Float = 0.6;
 	public var controlAlpha:Float = 0.6;
+	public var extraButton:Bool = false;
 	public var hitboxStyle:String = 'Normal';
 	public var hitboxHints:Bool = true;
+	public var hitboxExtraPosition:String = 'BOTTOM';
+	public var hitboxExtraKeybind:String = 'SPACE';
 
 	public var downScroll:Bool = false;
 	public var middleScroll:Bool = false;
@@ -273,8 +277,12 @@ class ClientPrefs {
 	public static function toggleVolumeKeys(?turnOn:Bool = true)
 	{
 		final emptyArray = [];
+		#if !mobile
 		FlxG.sound.muteKeys = turnOn ? TitleState.muteKeys : emptyArray;
 		FlxG.sound.volumeDownKeys = turnOn ? TitleState.volumeDownKeys : emptyArray;
 		FlxG.sound.volumeUpKeys = turnOn ? TitleState.volumeUpKeys : emptyArray;
+		#else
+		FlxG.sound.muteKeys = FlxG.sound.volumeDownKeys = FlxG.sound.volumeUpKeys = emptyArray;
+		#end
 	}
 }

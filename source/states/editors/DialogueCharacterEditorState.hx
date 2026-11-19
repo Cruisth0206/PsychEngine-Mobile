@@ -161,7 +161,8 @@ class DialogueCharacterEditorState extends MusicBeatState implements PsychUIEven
 		
 		super.create();
 
-		addVirtualPad(LEFT_FULL, A_B_C_X_Y_Z);
+		addVirtualPad(LEFT_FULL, A_B_C_X_Y_Z, false, members.indexOf(UI_typebox));
+		virtualPad.cameras = [camHUD];
 		virtualPad.addAction(D);
 		virtualPad.buttonD.y = virtualPad.buttonZ.y - 132;
 		virtualPad.buttonD.exists = false;
@@ -264,6 +265,7 @@ class DialogueCharacterEditorState extends MusicBeatState implements PsychUIEven
 					ghostLoop.playAnim(theAnim);
 					ghostIdle.playAnim(theAnim, true);
 				}
+				unsavedProgress = true;
 			}
 			else //Add
 			{
@@ -282,6 +284,7 @@ class DialogueCharacterEditorState extends MusicBeatState implements PsychUIEven
 				ghostIdle.reloadAnimations();
 				reloadAnimationsDropDown();
 				animationDropDown.selectedLabel = lastSelected;
+				unsavedProgress = true;
 			}
 		});
 		
@@ -304,6 +307,7 @@ class DialogueCharacterEditorState extends MusicBeatState implements PsychUIEven
 					animationInputText.text = '';
 					loopInputText.text = '';
 					idleInputText.text = '';
+					unsavedProgress = true;
 					break;
 				}
 			}
@@ -468,11 +472,20 @@ class DialogueCharacterEditorState extends MusicBeatState implements PsychUIEven
 			}
 			unsavedProgress = true;
 		}
+
+		if(id == PsychUIBox.DRAG_EVENT)
+			canMoveCamera = false;
+		else if(id == PsychUIBox.DROP_EVENT)
+			canMoveCamera = true;
+
+		if(id == PsychUIInputText.FOCUS_CHANGE_EVENT)
+			virtualPad.active = PsychUIInputText.focusOn == null;
 	}
 
 	var currentGhosts:Int = 0;
 	var lastTab:String = 'Character';
 	var transitioning:Bool = false;
+	var canMoveCamera:Bool = true;
 	#if mobile
 	var prevZoom:Float = 1;
 	#end
@@ -521,7 +534,7 @@ class DialogueCharacterEditorState extends MusicBeatState implements PsychUIEven
 			}
 
 			#if mobile
-			if (TouchUtil.input != null && TouchUtil.input.pressed && !TouchUtil.initiallyOverlapped([virtualPad], camControls, null, [TouchUtil.input]) && !TouchUtil.initiallyOverlapped([UI_mainbox, UI_typebox], camHUD, null, [TouchUtil.input])) {
+			if (canMoveCamera && TouchUtil.input != null && TouchUtil.input.pressed && !TouchUtil.initiallyOverlapped([virtualPad], camHUD, null, [TouchUtil.input]) && !TouchUtil.initiallyOverlapped([UI_mainbox, UI_typebox], camHUD, null, [TouchUtil.input])) {
 				// if (FlxG.touches.list.length < 2) { // Move camera
 					mainGroup.x += TouchUtil.input.deltaScreenX;
 					mainGroup.y += TouchUtil.input.deltaScreenY;
@@ -564,6 +577,7 @@ class DialogueCharacterEditorState extends MusicBeatState implements PsychUIEven
 					offsetIdleText.text = 'Idle: ' + animShit.idle_offsets;
 					ghostLoop.offset.set(animShit.loop_offsets[0], animShit.loop_offsets[1]);
 					ghostIdle.offset.set(animShit.idle_offsets[0], animShit.idle_offsets[1]);
+					unsavedProgress = true;
 				}
 			}
 
@@ -731,6 +745,7 @@ class DialogueCharacterEditorState extends MusicBeatState implements PsychUIEven
 					scaleStepper.value = character.jsonFile.scale;
 					xStepper.value = character.jsonFile.position[0];
 					yStepper.value = character.jsonFile.position[1];
+					unsavedProgress = false;
 					#if !mobile
 					_file = null;
 					#end
@@ -802,6 +817,7 @@ class DialogueCharacterEditorState extends MusicBeatState implements PsychUIEven
 		_file = null;
 		#end
 		FlxG.log.notice("Successfully saved file.");
+		unsavedProgress = false;
 	}
 
 	/**

@@ -75,7 +75,8 @@ class MenuCharacterEditorState extends MusicBeatState implements PsychUIEventHan
 
 		super.create();
 
-		addVirtualPad(LEFT_FULL, B);
+		addVirtualPad(LEFT_FULL, B, false, members.indexOf(UI_typebox));
+		virtualPad.scrollFactor.set();
 		virtualPad.addAction(C);
 		virtualPad.addAction(X);
 		virtualPad.buttonC.x -= 132;
@@ -227,6 +228,9 @@ class MenuCharacterEditorState extends MusicBeatState implements PsychUIEventHan
 				unsavedProgress = true;
 			}
 		}
+
+		if(id == PsychUIInputText.FOCUS_CHANGE_EVENT)
+			virtualPad.active = PsychUIInputText.focusOn == null;
 	}
 
 	override function update(elapsed:Float) {
@@ -334,6 +338,7 @@ class MenuCharacterEditorState extends MusicBeatState implements PsychUIEventHan
 					confirmInputText.text = characterFile.image;
 					scaleStepper.value = characterFile.scale;
 					updateOffset();
+					unsavedProgress = false;
 					#if !mobile
 					_file = null;
 					#end
@@ -405,6 +410,7 @@ class MenuCharacterEditorState extends MusicBeatState implements PsychUIEventHan
 		_file = null;
 		#end
 		FlxG.log.notice("Successfully saved file.");
+		unsavedProgress = false;
 	}
 
 	/**

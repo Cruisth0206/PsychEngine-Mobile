@@ -35,6 +35,7 @@ enum abstract CaseMode(Int) from Int from UInt to Int to UInt
 class PsychUIInputText extends FlxSpriteGroup
 {
 	public static final CHANGE_EVENT = "inputtext_change";
+	public static final FOCUS_CHANGE_EVENT = "focuson_change";
 
 	static final KEY_TILDE = 126;
 	static final KEY_ACUTE = 180;
@@ -386,6 +387,7 @@ class PsychUIInputText extends FlxSpriteGroup
 	}
 
 	public var unfocus:Void->Void;
+	public static var broadcastFocusChangeEvent:Bool = true;
 	public static function set_focusOn(v:PsychUIInputText)
 	{
 		if(focusOn != null && focusOn != v && focusOn.exists)
@@ -393,7 +395,9 @@ class PsychUIInputText extends FlxSpriteGroup
 			if(focusOn.unfocus != null) focusOn.unfocus();
 			focusOn.resetCaret();
 		}
-		return (focusOn = v);
+		focusOn = v;
+		if(broadcastFocusChangeEvent) PsychUIEventHandler.event(FOCUS_CHANGE_EVENT, null);
+		return focusOn;
 	}
 
 	var _doublePressed:Bool = false;
@@ -544,10 +548,10 @@ class PsychUIInputText extends FlxSpriteGroup
 		if(focusOn == this)
 		{
 			focusOn = null;
-			_doublePressed = false;
-			canType = false;
 			FlxG.stage.window.textInputEnabled = false;
 		}
+		_doublePressed = false;
+		canType = false;
 	}
 
 	function deleteSelection()
@@ -636,6 +640,7 @@ class PsychUIInputText extends FlxSpriteGroup
 	var _boundaries:Array<Float> = [];
 	function set_text(v:String)
 	{
+		if(_boundaries == null) return text = v;
 		for (i in 0..._boundaries.length) _boundaries.pop();
 		v = filter(v);
 

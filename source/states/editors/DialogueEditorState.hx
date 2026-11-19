@@ -95,7 +95,8 @@ class DialogueEditorState extends MusicBeatState implements PsychUIEventHandler.
 		changeText();
 		super.create();
 
-		addVirtualPad(LEFT_FULL, B);
+		addVirtualPad(LEFT_FULL, B, false, members.indexOf(UI_box));
+		virtualPad.scrollFactor.set();
 		virtualPad.addAction(C);
 		virtualPad.addAction(X);
 		virtualPad.addAction(Y);
@@ -302,6 +303,9 @@ class DialogueEditorState extends MusicBeatState implements PsychUIEventHandler.
 			reloadText(false);
 			unsavedProgress = true;
 		}
+
+		if(id == PsychUIInputText.FOCUS_CHANGE_EVENT)
+			virtualPad.active = PsychUIInputText.focusOn == null;
 	}
 
 	var curSelected:Int = 0;
@@ -337,6 +341,7 @@ class DialogueEditorState extends MusicBeatState implements PsychUIEventHandler.
 					transitioning = true;
 				}
 				else openSubState(new ExitConfirmationPrompt(function() transitioning = true));
+				super.update(elapsed);
 				return;
 			}
 			var negaMult:Array<Int> = [1, -1];
@@ -368,10 +373,12 @@ class DialogueEditorState extends MusicBeatState implements PsychUIEventHandler.
 						copyDefaultLine()
 					];
 				}
+				else unsavedProgress = true;
 				changeText();
 			} else if(FlxG.keys.justPressed.P || virtualPad.buttonX.justPressed) {
 				dialogueFile.dialogue.insert(curSelected + 1, copyDefaultLine());
 				changeText(1);
+				unsavedProgress = true;
 			}
 		}
 		else ClientPrefs.toggleVolumeKeys(false);
@@ -478,6 +485,7 @@ class DialogueEditorState extends MusicBeatState implements PsychUIEventHandler.
 					trace("Successfully loaded file: " + cutName);
 					dialogueFile = loadedDialog;
 					changeText();
+					unsavedProgress = false;
 					#if !mobile
 					_file = null;
 					#end
@@ -546,6 +554,7 @@ class DialogueEditorState extends MusicBeatState implements PsychUIEventHandler.
 		_file = null;
 		#end
 		FlxG.log.notice("Successfully saved file.");
+		unsavedProgress = false;
 	}
 
 	/**

@@ -84,6 +84,7 @@ class TitleState extends MusicBeatState
 			#if android
 			Callbacks.init();
 			#end
+			ClientPrefs.toggleVolumeKeys(true);
 		}
 
 		FlxG.fixedTimestep = false;

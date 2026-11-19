@@ -237,7 +237,6 @@ class PsychTouchManager implements IFlxInputManager
 		if (touch != null)
 		{
 			touch.input.release();
-			touch.updatePreviousPositions();
 		}
 	}
 
@@ -253,11 +252,7 @@ class PsychTouchManager implements IFlxInputManager
 			touch.updatePreviousPositions();
 			touch.setXY(Std.int(FlashEvent.stageX), Std.int(FlashEvent.stageY));
 			touch.pressure = FlashEvent.pressure;
-			touch._deltaAccumlationX += touch.deltaX;
-			touch._deltaAccumlationY += touch.deltaY;
-			if (!touch.swiped && (Math.abs(touch._deltaAccumlationX) >= PsychTouch.swipeThreshold || Math.abs(touch._deltaAccumlationY) >= PsychTouch.swipeThreshold)) {
-				touch.swiped = true;
-			}
+			touch._updatePrev = false;
 		}
 	}
 
@@ -309,7 +304,6 @@ class PsychTouchManager implements IFlxInputManager
 			// Touch ended at previous frame
 			if (touch.released && !touch.justReleased)
 			{
-				touch.reset();
 				_touchesCache.remove(touch.touchPointID);
 				list.splice(i, 1);
 				_inactiveTouches.push(touch);

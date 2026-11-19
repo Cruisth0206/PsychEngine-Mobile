@@ -14,9 +14,24 @@ class ExtraFunctions
 		var lua:State = funk.lua;
 		
 		// Keyboard & Gamepads
-		Lua_helper.add_callback(lua, "keyboardJustPressed", function(name:String) return Reflect.getProperty(FlxG.keys.justPressed, name));
-		Lua_helper.add_callback(lua, "keyboardPressed", function(name:String) return Reflect.getProperty(FlxG.keys.pressed, name));
-		Lua_helper.add_callback(lua, "keyboardReleased", function(name:String) return Reflect.getProperty(FlxG.keys.justReleased, name));
+		Lua_helper.add_callback(lua, "keyboardJustPressed", function(name:String)
+		{
+			var extraCheck:Bool = false;
+			if (ClientPrefs.data.hitboxExtraKeybind == name) extraCheck = Controls.instance.mobileInstance?.currentMode?.buttonExtra?.justPressed ?? false;
+			return Reflect.getProperty(FlxG.keys.justPressed, name) || extraCheck;
+		});
+		Lua_helper.add_callback(lua, "keyboardPressed", function(name:String)
+		{
+			var extraCheck:Bool = false;
+			if (ClientPrefs.data.hitboxExtraKeybind == name) extraCheck = Controls.instance.mobileInstance?.currentMode?.buttonExtra?.pressed ?? false;
+			return Reflect.getProperty(FlxG.keys.pressed, name) || extraCheck;
+		});
+		Lua_helper.add_callback(lua, "keyboardReleased", function(name:String)
+		{
+			var extraCheck:Bool = false;
+			if (ClientPrefs.data.hitboxExtraKeybind == name) extraCheck = Controls.instance.mobileInstance?.currentMode?.buttonExtra?.justReleased ?? false;
+			return Reflect.getProperty(FlxG.keys.justReleased, name) || extraCheck;
+		});
 
 		Lua_helper.add_callback(lua, "anyGamepadJustPressed", function(name:String) return FlxG.gamepads.anyJustPressed(name));
 		Lua_helper.add_callback(lua, "anyGamepadPressed", function(name:String) FlxG.gamepads.anyPressed(name));

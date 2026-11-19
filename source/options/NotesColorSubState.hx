@@ -5,6 +5,7 @@ import flixel.addons.display.FlxGridOverlay;
 import flixel.addons.display.shapes.FlxShapeCircle;
 import flixel.input.keyboard.FlxKey;
 import flixel.input.gamepad.FlxGamepadInputID;
+import openfl.events.KeyboardEvent;
 import lime.system.Clipboard;
 import flixel.util.FlxGradient;
 import objects.StrumNote;
@@ -147,7 +148,7 @@ class NotesColorSubState extends MusicBeatSubstate
 
 		var tipX = 20;
 		var tipY = 660;
-		var tip:FlxText = new FlxText(tipX, tipY, 0, Language.getPhrase('note_colors_tip', 'Press RESET to Reset the selected Note Part.'), 16);
+		var tip:FlxText = new FlxText(tipX, tipY, 0, Language.getPhrase('note_colors_tip', 'Press ' + #if !mobile 'RESET' #else 'C' #end + ' to Reset the selected Note Part.'), 16);
 		tip.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		tip.borderSize = 2;
 		add(tip);
@@ -178,13 +179,60 @@ class NotesColorSubState extends MusicBeatSubstate
 		virtualPad.buttonZ.x = virtualPad.buttonC.x + 570;
 		virtualPad.buttonZ.y = virtualPad.buttonC.y;
 		virtualPad.allowSwiping = false;
+
+		#if mobile
+		FlxG.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+		#end
 	}
 
 	function updateTip()
 	{
-		var key:String = !controls.controllerMode ? Language.getPhrase('note_colors_shift', 'Shift') : Language.getPhrase('note_colors_lb', 'Left Shoulder Button');
-		tipTxt.text = Language.getPhrase('note_colors_hold_tip', 'Hold {1} + Press RESET key to fully reset the selected Note.', [key]);
+		var key:String = !controls.controllerMode ? #if !mobile Language.getPhrase('note_colors_shift', 'Shift') #else 'Z' #end : Language.getPhrase('note_colors_lb', 'Left Shoulder Button');
+		tipTxt.text = Language.getPhrase('note_colors_hold_tip', 'Hold {1} + Press ' + #if !mobile 'RESET key' #else 'C' #end + ' to fully reset the selected Note.', [key]);
 	}
+
+	#if mobile
+	function onKeyDown(e:KeyboardEvent)
+	{
+		if(hexTypeNum <= -1) return;
+
+		var key:FlxKey = cast e.keyCode;
+
+		if(key == ENTER)
+		{
+			hexTypeNum = -1;
+			return;
+		}
+
+		if(!allowedTypeKeys.exists(key)) return;
+
+		//trace('keyPressed: $keyPressed, lil str: ' + allowedTypeKeys.get(keyPressed));
+		var curColor:String = alphabetHex.text;
+		var newColor:String = curColor.substring(0, hexTypeNum) + allowedTypeKeys.get(key) + curColor.substring(hexTypeNum + 1);
+
+		var colorHex:FlxColor = FlxColor.fromString('#' + newColor);
+		setShaderColor(colorHex);
+		_storedColor = getShaderColor();
+		updateColors();
+
+		// move you to next letter
+		hexTypeNum++;
+
+		if (hexTypeNum > 5) //Typed last letter
+		{
+			hexTypeNum = -1;
+			hexTypeLine.visible = false;
+		}
+		else
+		{
+			if(hexTypeNum < 0) hexTypeNum = 0;
+			else if(hexTypeNum > 5) hexTypeNum = 5;
+			centerHexTypeLine();
+			hexTypeLine.visible = true;
+		}
+		FlxG.sound.play(Paths.sound('scrollMenu'), 0.6);
+	}
+	#end
 
 	var _storedColor:FlxColor;
 	var changingNote:Bool = false;
@@ -308,6 +356,15 @@ class NotesColorSubState extends MusicBeatSubstate
 				FlxG.sound.play(Paths.sound('scrollMenu'), 0.6);
 			}
 			if(!end) hexTypeLine.visible = Math.floor(hexTypeVisibleTimer * 2) % 2 == 0;
+
+			// kind of a fix to make the line disappear when pressing the back button on android idk
+			#if mobile
+			if(!FlxG.stage.window.textInputEnabled)
+			{
+				hexTypeLine.visible = false;
+				hexTypeNum = -1;
+			}
+			#end
 		}
 		else
 		{
@@ -330,6 +387,7 @@ class NotesColorSubState extends MusicBeatSubstate
 				if(onModeColumn) changeSelectionMode(add);
 				else changeSelectionNote(add);
 			}
+			if(FlxG.stage.window.textInputEnabled) FlxG.stage.window.textInputEnabled = false;
 			hexTypeLine.visible = false;
 		}
 
@@ -429,7 +487,7 @@ class NotesColorSubState extends MusicBeatSubstate
 				FlxG.sound.play(Paths.sound('scrollMenu'), 0.6);
 			}
 			else if(pointerY() >= hexTypeLine.y && pointerY() < hexTypeLine.y + hexTypeLine.height &&
-					Math.abs(pointerX() - 1000) <= 84)
+					Math.abs(pointerX() - 1000) <= 154)
 			{
 				FlxG.stage.window.textInputEnabled = true;
 				hexTypeNum = 0;
@@ -723,6 +781,9 @@ class NotesColorSubState extends MusicBeatSubstate
 	override function destroy()
 	{
 		Note.globalRgbShaders = [];
+		#if mobile
+		FlxG.stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+		#end
 		super.destroy();
 	}
 }

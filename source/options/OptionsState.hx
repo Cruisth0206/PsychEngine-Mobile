@@ -74,6 +74,13 @@ class OptionsState extends MusicBeatState
 			grpOptions.add(optionText);
 		}
 
+		#if mobile
+		var mobileTip:FlxText = new FlxText(140, FlxG.height - 25, 0, 'Press C to customize mobile controls');
+		mobileTip.setFormat(Paths.font("vcr.ttf"), 14, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		mobileTip.borderSize = 2;
+		add(mobileTip);
+		#end
+
 		selectorLeft = new Alphabet(0, 0, '>', true);
 		add(selectorLeft);
 		selectorRight = new Alphabet(0, 0, '<', true);
@@ -94,7 +101,11 @@ class OptionsState extends MusicBeatState
 		#if DISCORD_ALLOWED
 		DiscordClient.changePresence("Options Menu", null);
 		#end
-		if (virtualPad != null) virtualPad.visible = true;
+		if (virtualPad != null)
+		{
+			virtualPad.visible = true;
+			virtualPad.alpha = ClientPrefs.data.padAlpha;
+		}
 		FlxG.inputs.reset();
 	}
 

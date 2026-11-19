@@ -307,7 +307,8 @@ class ModsMenuState extends MusicBeatState
 		virtualPad.buttonDown.x += 20;
 		virtualPad.buttonDown.y = virtualPad.buttonUp.y + 127;
 	}
-	
+
+	var restarting:Bool = false;
 	var nextAttempt:Float = 1;
 	var holdingMod:Bool = false;
 	var mouseOffsets:FlxPoint = new FlxPoint();
@@ -318,7 +319,7 @@ class ModsMenuState extends MusicBeatState
 
 	override function update(elapsed:Float)
 	{
-		if((controls.BACK #if android || FlxG.android.justReleased.BACK #end) && hoveringOnMods)
+		if((controls.BACK #if android || FlxG.android.justReleased.BACK #end) && hoveringOnMods && !restarting)
 		{
 			saveTxt();
 
@@ -335,6 +336,7 @@ class ModsMenuState extends MusicBeatState
 					FreeplayState.vocals = null;
 				}
 				FlxG.camera.fade(FlxColor.BLACK, 0.5, false, FlxG.resetGame, false);
+				restarting = true;
 			}
 			else MusicBeatState.switchState(new MainMenuState());
 

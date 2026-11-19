@@ -172,7 +172,17 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 		super.create();
 
-		addVirtualPad(LEFT_FULL, A_B_C_X_Y_Z);
+		addVirtualPad(LEFT_FULL, A_B_C_X_Y_Z, false, members.indexOf(UI_characterbox));
+		for (obj in [UI_box, UI_characterbox]) {
+			virtualPad.deadZones.push(obj);
+			for (tab in obj.tabs) {
+				for (mem in tab.menu) {
+					virtualPad.deadZones.push(mem);
+				}
+			}
+		}
+		virtualPad.deadZones = virtualPad.deadZones;
+		virtualPad.cameras = [camHUD];
 		virtualPad.addAction(D);
 		virtualPad.addAction(V);
 		virtualPad.addAction(G);
@@ -430,6 +440,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			updatePointerPos();
 			reloadCharacterOptions();
 			reloadCharacterDropDown();
+			unsavedProgress = false;
 		});
 
 		var templateCharacter:PsychUIButton = new PsychUIButton(140, 50, "Load Template", function()
@@ -465,6 +476,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			updatePointerPos();
 			reloadCharacterDropDown();
 			updateHealthBar();
+			unsavedProgress = false;
 		});
 		templateCharacter.normalStyle.bgColor = FlxColor.RED;
 		templateCharacter.normalStyle.textColor = FlxColor.WHITE;
@@ -488,6 +500,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				reloadCharacterOptions();
 				reloadCharacterDropDown();
 				updatePointerPos();
+				unsavedProgress = false;
 			}
 			else
 			{
@@ -588,6 +601,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 			reloadAnimList();
 			@:arrayAccess curAnim = Std.int(Math.max(0, character.animationsArray.indexOf(addedAnim)));
 			character.playAnim(addedAnim.anim, true);
+
+			unsavedProgress = true;
 			trace('Added/Updated animation: ' + animationInputText.text);
 		});
 
@@ -603,6 +618,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 						else @:privateAccess character.atlas.anim.animsMap.remove(anim.anim);
 						character.animOffsets.remove(anim.anim);
 						character.animationsArray.remove(anim);
+						unsavedProgress = true;
 					}
 
 					if(resetAnim && character.animationsArray.length > 0) {
@@ -825,6 +841,14 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 				unsavedProgress = true;
 			}
 		}
+
+		if(id == PsychUIBox.DRAG_EVENT)
+			canMoveCamera = false;
+		else if(id == PsychUIBox.DROP_EVENT)
+			canMoveCamera = true;
+
+		if(id == PsychUIInputText.FOCUS_CHANGE_EVENT)
+			virtualPad.active = PsychUIInputText.focusOn == null;
 	}
 
 	function reloadCharacterImage()
@@ -896,6 +920,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 	var holdingFrameTime:Float = 0;
 	var holdingFrameElapsed:Float = 0;
 	var undoOffsets:Array<Float> = null;
+	var canMoveCamera:Bool = true;
 	#if mobile
 	var prevZoom:Float = 1;
 	#end
@@ -938,7 +963,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		}
 
 		#if mobile
-		if (TouchUtil.input != null && TouchUtil.input.pressed && !TouchUtil.initiallyOverlapped([virtualPad], camControls, null, [TouchUtil.input]) && !TouchUtil.initiallyOverlapped([UI_box, UI_characterbox], camHUD, null, [TouchUtil.input])) {
+		if (canMoveCamera && TouchUtil.input != null && TouchUtil.input.pressed && !TouchUtil.initiallyOverlapped([virtualPad], camHUD, null, [TouchUtil.input]) && !TouchUtil.initiallyOverlapped([UI_box, UI_characterbox], camHUD, null, [TouchUtil.input])) {
 			// if (FlxG.touches.list.length < 2) { // Move camera
 				FlxG.camera.scroll.x -= TouchUtil.input.deltaScreenX;
 				FlxG.camera.scroll.y -= TouchUtil.input.deltaScreenY;
@@ -1046,6 +1071,8 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 			character.addOffset(anim.anim, character.offset.x, character.offset.y);
 			updateText();
+
+			if(!unsavedProgress) unsavedProgress = true;
 		}
 
 		var txt = 'ERROR: No Animation Found';
@@ -1322,6 +1349,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		_file = null;
 		#end
 		FlxG.log.notice("Successfully saved file.");
+		unsavedProgress = false;
 	}
 
 	/**
