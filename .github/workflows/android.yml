@@ -36,6 +36,7 @@ jobs:
         run: |
           yes | sdkmanager --licenses
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"
+
       - name: Instalar Haxe
         uses: krdlab/setup-haxe@master
         with:
@@ -50,6 +51,7 @@ jobs:
           haxelib install hxcpp --quiet
           chmod +x ./setup/unix.sh
           sh ./setup/unix.sh
+          haxelib install extension-androidtools 2.2.2 --quiet
 
       - name: Configurar Android
         run: |
