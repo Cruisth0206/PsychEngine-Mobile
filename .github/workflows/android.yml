@@ -28,6 +28,9 @@ jobs:
 
       - name: Preparar Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: false
+          packages: ''
 
       - name: Instalar Android NDK
         run: |
